@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
-mbert_path=../trained-transformers/bert-multi-cased
-xlmr_path=../trained-transformers/xlmr-base
+mbert_path=./trained-transformers/bert-base-multilingual-cased
+xlmr_path=./trained-transformers/xlm-roberta-base
 
-python main.py --tfm_type mbert \
+
+python mainabsa.py --tfm_type xlmr \
             --exp_type acs_kd_s \
-            --model_name_or_path $mbert_path \
+            --model_name_or_path $xlmr_path \
             --data_dir ./data \
             --src_lang en \
             --tgt_lang fr \

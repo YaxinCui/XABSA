@@ -177,6 +177,20 @@ class XABSADataset(Dataset):
     def __len__(self):
         return len(self.labels)
 
+class XATEKDDataset(Dataset):
+    """ Dataset for distillation, only have soft labels """
+    def __init__(self, encodings, teacher_probs):
+        self.encodings = encodings
+        self.teacher_probs = teacher_probs
+
+    def __getitem__(self, idx):
+        item = {key: torch.tensor(value[idx]) for key, value in self.encodings.items()}
+        item['teacher_probs'] = self.teacher_probs[idx]
+        return item
+
+    def __len__(self):
+        return len(self.teacher_probs)
+
 
 class XABSAKDDataset(Dataset):
     """ Dataset for distillation, only have soft labels """
@@ -218,7 +232,8 @@ def build_or_load_dataset(args, tokenizer, mode='train'):
         file_name_or_list = f"gold-{args.tgt_lang}-train.txt"
 
     elif mode == 'unlabeled_mtl':
-        file_name_or_list = [f"gold-{l}-train.txt" for l in ['fr', 'es', 'nl', 'ru']]
+        # file_name_or_list = [f"gold-{l}-train.txt" for l in ['fr', 'es', 'nl', 'ru']]
+        file_name_or_list = [f"gold-{l}-train.txt" for l in ['fr', 'es']]
 
     elif mode == 'train':
         # Supervised setting (to have a "upperbound")
@@ -313,7 +328,10 @@ def write_results_to_log(log_file_path, best_test_result, args, dev_results,
         args.per_gpu_train_batch_size, args.learning_rate, args.max_steps, args.train_begin_saving_step
     )
     results_str = "\n* Results *:  Dev  /  Test  \n"
-    metric_names = ['micro_f1', 'precision', 'recall', 'eval_loss']
+    if args.task=="absa":
+        metric_names = ['micro_f1', 'precision', 'recall', 'eval_loss']
+    elif args.task=="ate":
+        metric_names = ['f1', 'precision', 'recall', 'eval_loss']
     for gstep in global_steps:
         results_str += f"Step-{gstep}:\n"
         for name in metric_names:
