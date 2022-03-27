@@ -1,0 +1,18 @@
+Sun Mar 27 12:44:31 2022
+Exp setting: mbert for XABSA (BIEOS) | 0.6334 | es -> fr in acs setting.
+Model is saved in outputsate/mbert-es-fr-acs
+Train setting: bs=16, lr=5e-05, total_steps=2000 (Start eval from 1500)
+
+* Results *:  Dev  /  Test  
+Step-1500:
+f1      : 0.7665 / 0.6334     precision: 0.7801 / 0.7151     recall  : 0.7535 / 0.5686     eval_loss: 0.2194 / 0.3089     
+Step-1600:
+f1      : 0.7556 / 0.6351     precision: 0.7493 / 0.7028     recall  : 0.7620 / 0.5794     eval_loss: 0.2136 / 0.2949     
+Step-1700:
+f1      : 0.7535 / 0.6389     precision: 0.7452 / 0.6944     recall  : 0.7620 / 0.5917     eval_loss: 0.2157 / 0.3083     
+Step-1800:
+f1      : 0.7614 / 0.6416     precision: 0.7726 / 0.7189     recall  : 0.7507 / 0.5794     eval_loss: 0.2246 / 0.3178     
+Step-1900:
+f1      : 0.7507 / 0.6462     precision: 0.7424 / 0.6989     recall  : 0.7592 / 0.6009     eval_loss: 0.2290 / 0.3218     
+
+

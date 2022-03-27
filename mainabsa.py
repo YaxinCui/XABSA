@@ -15,9 +15,9 @@ from transformers import BertConfig, BertTokenizer, BertTokenizerFast
 from transformers import XLMRobertaConfig, XLMRobertaTokenizer, XLMRobertaTokenizerFast
 from transformers import AdamW, get_linear_schedule_with_warmup
 
-from model import BertATETagger, XLMRATETagger
-from seq_utils import compute_metrics_ate
-from data_utils import XATEKDDataset
+from model import BertABSATagger, XLMRABSATagger
+from seq_utils import compute_metrics_absa
+from data_utils import XABSAKDDataset
 from data_utils import build_or_load_dataset, get_tag_vocab, write_results_to_log 
 
 
@@ -25,9 +25,9 @@ logger = logging.getLogger(__name__)
 
 
 MODEL_CLASSES = {
-    'bert': (BertConfig, BertATETagger, BertTokenizerFast),
-    'mbert': (BertConfig, BertATETagger, BertTokenizerFast),
-    'xlmr': (XLMRobertaConfig, XLMRATETagger, XLMRobertaTokenizerFast)
+    'bert': (BertConfig, BertABSATagger, BertTokenizerFast),
+    'mbert': (BertConfig, BertABSATagger, BertTokenizerFast),
+    'xlmr': (XLMRobertaConfig, XLMRABSATagger, XLMRobertaTokenizerFast)
 }
 
 
@@ -72,7 +72,6 @@ def init_args():
                              "than this will be truncated, sequences shorter will be padded.")
     parser.add_argument("--do_train", action='store_true', help="Whether to run training.")
     parser.add_argument("--do_distill", action='store_true', help="Whether to run knowledge distillation.")
-    # parser.add_argument("--trained_teacher_paths", type=str, help="path of the trained model")
     parser.add_argument("--trained_teacher_paths", type=str, help="path of the trained model")
     parser.add_argument("--do_eval", action='store_true', help="Whether to run eval on the dev/test set.")
     parser.add_argument("--eval_begin_end", default="15-19", type=str)
@@ -114,16 +113,16 @@ def init_args():
                         help="Overwrite the cached training and evaluation sets")
     parser.add_argument('--seed', type=int, default=42,
                         help="random seed for initialization")
-    parser.add_argument("--task", default="ate", type=str,
-                        help="ate task or absa task")
-    parser.add_argument("--student_model_path", default=None, type=str)
+
     # distributed training
     parser.add_argument("--local_rank", type=int, default=-1, help="For distributed training: local_rank")
+    parser.add_argument("--task", default="ate", type=str,
+                        help="ate task or absa task")
 
     args = parser.parse_args()
 
     # set up output dir: './outputs/mbert-en-fr-zero_shot/'
-    output_dir = f"outputsate/{args.tfm_type}-{args.src_lang}-{args.tgt_lang}-{args.exp_type}"
+    output_dir = f"outputsabsa/{args.tfm_type}-{args.src_lang}-{args.tgt_lang}-{args.exp_type}"
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     args.output_dir = output_dir
@@ -409,7 +408,7 @@ def evaluate(args, eval_dataset, model, idx2tag, mode, step=None):
     # argmax operation over the last dimension
     pred_labels = np.argmax(preds, axis=-1)
 
-    result, ground_truth, predictions = compute_metrics_ate(pred_labels, gold_labels, idx2tag, args.tagging_schema)
+    result, ground_truth, predictions = compute_metrics_absa(pred_labels, gold_labels, idx2tag, args.tagging_schema)
     
     result['eval_loss'] = eval_loss
     results.update(result)
@@ -466,13 +465,8 @@ def get_teacher_probs(args, dataset, model_class, teacher_model_path):
 
 
 def get_multi_teacher_probs(args, dataset, model_class):
-    # teacher_paths = args.trained_teacher_paths 
-    # 因为我只做en,es,fr之间的语言对迁移，所以只用这3个在不同语言中效果最好的模型做teacher。
-    teacher_paths = [
-        "./outputsate/xlmr-en-en-supervised/checkpoint-1500",
-        "./outputsate/xlmr-en-es-acs/checkpoint-1800",
-        "./outputsate/xlmr-en-fr-acs/checkpoint-1900"
-   ]
+    teacher_paths = args.trained_teacher_paths 
+    
     # obtain all preds
     all_preds = []
     for teacher_path in teacher_paths:
@@ -519,10 +513,10 @@ def main():
     set_seed(args)
 
     # Set up task and the label
-    tag_list, tag2idx, idx2tag = get_tag_vocab('ate', args.tagging_schema, args.label_path)
+    tag_list, tag2idx, idx2tag = get_tag_vocab('absa', args.tagging_schema, args.label_path)
     num_tags = len(tag_list)
     args.num_labels = num_tags
-    logger.info(f"Perform XATE task with label list being {tag_list} (n_labels={num_tags})")
+    logger.info(f"Perform XABSA task with label list being {tag_list} (n_labels={num_tags})")
 
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()
@@ -556,7 +550,7 @@ def main():
             args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
             do_lower_case=args.do_lower_case
         )
-        # config.ate_type = args.ate_type  # type of task-specific layer, 'linear'
+        # config.absa_type = args.absa_type  # type of task-specific layer, 'linear'
 
         model = model_class.from_pretrained(args.model_name_or_path, config=config)
         model.to(args.device)
@@ -600,7 +594,6 @@ def main():
         if args.exp_type == 'acs_kd_s':
             teacher_model_path = args.trained_teacher_paths
             teacher_probs = get_teacher_probs(args, dataset, model_class, teacher_model_path)
-            print(f"get teach probs from {teacher_model_path}")
         # use the three combinations as multi-teacher distill
         elif args.exp_type == 'acs_kd_m':
             teacher_probs = get_multi_teacher_probs(args, dataset, model_class)
@@ -609,13 +602,13 @@ def main():
             teacher_model_path = args.trained_teacher_paths
             teacher_probs = get_teacher_probs(args, dataset, model_class, teacher_model_path)
         
-        train_dataset = XATEKDDataset(dataset.encodings, teacher_probs)
+        train_dataset = XABSAKDDataset(dataset.encodings, teacher_probs)
         logger.info(f"Obtained the soft labels")
 
         # initialize the model with the translated data
         # student_model_path = f"outputs/{args.tfm_type}-{args.src_lang}-{args.tgt_lang}-smt/checkpoint"
         student_model_path = args.student_model_path
-        # student_model_path = args.model_name_or_path
+
         s_config_class, s_model_class, _ = MODEL_CLASSES[args.tfm_type]
         config = s_config_class.from_pretrained(
             args.config_name if args.config_name else args.model_name_or_path,
@@ -644,7 +637,7 @@ def main():
         # find the dir containing trained model, different dirs under different settings
         # if the model is multilingual, we will only use one target language for the output dir
         if 'mtl' in exp_type:
-            one_tgt_lang = args.tgt_lang
+            one_tgt_lang = 'fr'
             saved_model_dir = f"outputs/{args.tfm_type}-{args.src_lang}-{one_tgt_lang}-{exp_type}"
         
         elif exp_type == 'zero_shot':
@@ -688,7 +681,7 @@ def main():
 
                 dev_result = evaluate(args, dev_dataset, model, idx2tag, mode='dev')
                 # regard the micro-f1 as the criteria of model selection
-                metrics = 'f1'
+                metrics = 'micro_f1'
                 if dev_result[metrics] > best_f1:
                     best_f1 = dev_result[metrics]
                     best_checkpoint = checkpoint
@@ -709,7 +702,7 @@ def main():
         print(f"F1 scores on test set: {test_results[best_step_metric]:.4f}")
 
         print("\n* Results *:  Dev  /  Test  \n")
-        metric_names = ['f1', 'precision', 'recall', 'eval_loss']
+        metric_names = ['micro_f1', 'precision', 'recall', 'eval_loss']
         for gstep in global_steps:
             print(f"Step-{gstep}:")
             for name in metric_names:

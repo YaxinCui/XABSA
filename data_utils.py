@@ -255,9 +255,9 @@ def build_or_load_dataset(args, tokenizer, mode='train'):
         # need to have the code switching data such as 'cs-en-fr-train.txt'
         elif exp_type == 'acs':
             file_name_or_list = [f"gold-{args.src_lang}-train.txt", 
-                                 f"cs_{args.src_lang}-{args.tgt_lang}-train.txt",
-                                 f"cs_{args.tgt_lang}-{args.src_lang}-train.txt",
-                                 f"smt-{args.tgt_lang}-train.txt"]           
+                                 f"cs-{args.src_lang}-{args.src_lang}-{args.tgt_lang}-train.txt",
+                                 f"cs-{args.src_lang}-{args.tgt_lang}-{args.src_lang}-train.txt",
+                                 f"smt-{args.src_lang}-{args.tgt_lang}-train.txt"]           
 
         elif exp_type == 'acs_mtl':
             lang_list = ['fr', 'es', 'nl', 'ru']

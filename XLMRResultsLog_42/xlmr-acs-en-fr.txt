@@ -1,0 +1,18 @@
+Sat Mar 26 03:32:22 2022
+Exp setting: xlmr for XABSA (BIEOS) | 0.6711 | en -> fr in acs setting.
+Model is saved in outputsate/xlmr-en-fr-acs
+Train setting: bs=16, lr=5e-05, total_steps=2000 (Start eval from 1500)
+
+* Results *:  Dev  /  Test  
+Step-1500:
+f1      : 0.8097 / 0.6645     precision: 0.8032 / 0.6846     recall  : 0.8164 / 0.6456     eval_loss: 0.2012 / 0.2862     
+Step-1600:
+f1      : 0.8157 / 0.6576     precision: 0.8070 / 0.7285     recall  : 0.8247 / 0.5994     eval_loss: 0.2095 / 0.2946     
+Step-1700:
+f1      : 0.8164 / 0.6711     precision: 0.8164 / 0.7412     recall  : 0.8164 / 0.6133     eval_loss: 0.2171 / 0.3053     
+Step-1800:
+f1      : 0.8104 / 0.6769     precision: 0.8127 / 0.7172     recall  : 0.8082 / 0.6410     eval_loss: 0.2177 / 0.3059     
+Step-1900:
+f1      : 0.8082 / 0.6851     precision: 0.8082 / 0.7279     recall  : 0.8082 / 0.6471     eval_loss: 0.2192 / 0.2971     
+
+
